@@ -202,7 +202,8 @@ Feel free to check the [issues page](https://github.com/shashanthnetha/Acuity-co
 
 **Shashanth Netha (Sha)**
 * GitHub: [@shashanthnetha](https://github.com/shashanthnetha)
-* Background: AI & ML Engineering, CMRCET Hyderabad • 1st Prize @ IIT Hyderabad Hackathon
+* Background: AI & ML Engineering
+* Linkedin: (https://www.linkedin.com/in/shashanth-pittala/)
 
 ---
 
