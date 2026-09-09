@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acuity — High-Performance Mac to Android Screen Mirroring</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #06080e;
+            --card-bg: rgba(13, 17, 28, 0.78);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.35);
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glow & Grid Background */
+        .ambient-glow {
+            position: fixed;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, var(--primary-glow) 0%, var(--accent-glow) 45%, transparent 70%);
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.65;
+        }
+
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Container */
+        .wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 680px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Main Glass Card */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid var(--card-border);
+            border-radius: 28px;
+            padding: 44px 36px;
+            width: 100%;
+            box-shadow: 
+                0 30px 60px -12px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+            text-align: center;
+            transition: border-color 0.3s ease;
+        }
+
+        /* Badges */
+        .badge-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge-version {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #34d399;
+        }
+
+        .badge-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: #34d399;
+            box-shadow: 0 0 8px #34d399;
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        .badge-server {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            color: #7dd3fc;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        /* Typography */
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 46px;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -1.5px;
+            margin-bottom: 14px;
+            background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h1 span {
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            font-size: 16px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 34px;
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Download Options Grid */
+        .downloads-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            width: 100%;
+            margin-bottom: 32px;
+        }
+
+        @media (max-width: 560px) {
+            .downloads-grid {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                padding: 32px 20px;
+            }
+            h1 {
+                font-size: 36px;
+            }
+        }
+
+        .download-card {
+            position: relative;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+        }
+
+        .download-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.5);
+        }
+
+        .download-card.primary {
+            background: linear-gradient(180deg, rgba(56, 189, 248, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .download-card.primary:hover {
+            border-color: var(--primary);
+            box-shadow: 0 16px 36px -8px rgba(56, 189, 248, 0.3);
+        }
+
+        .rec-tag {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.15);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            display: none;
+        }
+
+        .download-card.is-detected .rec-tag {
+            display: block;
+        }
+
+        .os-icon {
+            font-size: 38px;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+        }
+
+        .download-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .download-spec {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            background: #1e293b;
+            color: #f8fafc;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+        }
+
+        .download-card.primary .btn-action {
+            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+            border: none;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+        }
+
+        .download-card:hover .btn-action {
+            filter: brightness(1.15);
+        }
+
+        /* Architecture Pills */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 560px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+
+        .feature-item .f-icon {
+            font-size: 20px;
+            line-height: 1;
+            padding-top: 2px;
+        }
+
+        .feature-item .f-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #e2e8f0;
+            margin-bottom: 2px;
+        }
+
+        .feature-item .f-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Footer */
+        .footer {
+            font-size: 12px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 20px;
+        }
+
+        .footer a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer a:hover {
+            color: var(--primary);
+        }
+
+        .copy-pill {
+            margin-top: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 6px 12px;
+            border-radius: 8px;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-pill:hover {
+            background: rgba(0, 0, 0, 0.6);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+    <div class="bg-grid"></div>
+
+    <div class="wrapper">
+        <div class="card">
+            
+            <div class="badge-row">
+                <div class="badge badge-version">
+                    <div class="badge-dot"></div>
+                    v1.0.0 Stable
+                </div>
+                <div class="badge badge-server" id="server-badge">
+                    Signaling: Online
+                </div>
+            </div>
+
+            <h1>Acuity <span>Mirror</span></h1>
+            <p class="subtitle">
+                Zero-latency Mac-to-Android display mirroring with hardware touch injection, ScreenCaptureKit, and hardware KeyStore cryptographic authentication.
+            </p>
+
+            <div class="downloads-grid">
+                <!-- Mac Download Card -->
+                <a href="/Acuity.dmg" download="Acuity.dmg" class="download-card primary" id="mac-card">
+                    <span class="rec-tag">Recommended</span>
+                    <div class="os-icon">🍏</div>
+                    <div class="download-title">Acuity for Mac</div>
+                    <div class="download-spec">macOS 13+ • DMG (14 MB)</div>
+                    <div class="btn-action">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span>Download .dmg</span>
+                    </div>
+                </a>
+
+                <!-- Android Download Card -->
+                <a href="/acuity.apk" download="acuity.apk" class="download-card" id="android-card">
+                    <span class="rec-tag">Recommended</span>
+                    <div class="os-icon">🤖</div>
+                    <div class="download-title">Acuity Client</div>
+                    <div class="download-spec">Android 8.0+ • APK (11 MB)</div>
+                    <div class="btn-action">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span>Download .apk</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Architecture Features -->
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="f-icon">⚡</div>
+                    <div>
+                        <div class="f-title">&lt;16ms Local WebRTC</div>
+                        <div class="f-desc">Sub-frame latency over direct Wi-Fi with H.264 hardware encoding.</div>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="f-icon">🔒</div>
+                    <div>
+                        <div class="f-title">Hardware KeyStore Auth</div>
+                        <div class="f-desc">Hardware-backed P-256 ECDSA cryptographic challenge-response.</div>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="f-icon">👆</div>
+                    <div>
+                        <div class="f-title">Hardware Touch Injection</div>
+                        <div class="f-desc">CoreGraphics injection: smooth multi-touch, pinch-to-zoom, scroll-lock.</div>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="f-icon">📡</div>
+                    <div>
+                        <div class="f-title">Bonjour Auto-Discovery</div>
+                        <div class="f-desc">Zero-config mDNS pairing. No manual IP or room codes needed.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Helper -->
+            <div class="copy-pill" onclick="copyRebuildCmd()" id="copy-btn">
+                <span>$ cd mac-agent &amp;&amp; ./package_app.sh</span>
+                <span style="opacity: 0.5;">(Click to copy build cmd)</span>
+            </div>
+
+            <div class="footer" style="margin-top: 24px;">
+                <span>Menu-Bar Daemon (LSUIElement)</span>
+                <span>•</span>
+                <span>ScreenCaptureKit 60fps</span>
+                <span>•</span>
+                <span>Authored by Sha</span>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Smart OS Detection
+        (function detectOS() {
+            const userAgent = window.navigator.userAgent.toLowerCase();
+            const macCard = document.getElementById('mac-card');
+            const androidCard = document.getElementById('android-card');
+
+            if (userAgent.includes('macintosh') || userAgent.includes('mac os')) {
+                macCard.classList.add('is-detected', 'primary');
+                androidCard.classList.remove('primary');
+            } else if (userAgent.includes('android')) {
+                androidCard.classList.add('is-detected', 'primary');
+                macCard.classList.remove('primary');
+            }
+        })();
+
+        // Copy build command
+        function copyRebuildCmd() {
+            const cmd = 'cd "/Users/netha/Documents/Macky for androd/mac-agent" && ./package_app.sh';
+            navigator.clipboard.writeText(cmd).then(() => {
+                const btn = document.getElementById('copy-btn');
+                btn.innerHTML = '<span>✅ Copied rebuild command to clipboard!</span>';
+                setTimeout(() => {
+                    btn.innerHTML = '<span>$ cd mac-agent && ./package_app.sh</span><span style="opacity: 0.5;">(Click to copy build cmd)</span>';
+                }, 2200);
+            });
+        }
+    </script>
+</body>
+</html>

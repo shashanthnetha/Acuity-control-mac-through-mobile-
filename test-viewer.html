@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Macky WebRTC Screen Mirror Viewer</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-dim: #8b949e;
+      --accent: #58a6ff;
+      --success: #3fb950;
+      --warning: #d29922;
+      --danger: #f85149;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .title-group h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+
+    .status-connected .status-dot { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .status-connecting .status-dot { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+    .status-error .status-dot { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      flex: 1;
+    }
+
+    .video-container {
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      min-height: 480px;
+    }
+
+    .video-container.allow-scroll {
+      overflow: auto;
+      display: block;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      max-height: 80vh;
+      object-fit: contain;
+      background: #000;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+
+    video.native-size {
+      width: auto !important;
+      height: auto !important;
+      max-height: none !important;
+      object-fit: none !important;
+    }
+
+    .video-overlay-msg {
+      position: absolute;
+      text-align: center;
+      color: var(--text-dim);
+      padding: 20px;
+    }
+
+    .video-overlay-msg.hidden {
+      display: none;
+    }
+
+    .stats-bar {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-family: monospace;
+      color: #58a6ff;
+      display: flex;
+      gap: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .card h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      color: #fff;
+      font-size: 0.9rem;
+      font-family: monospace;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    button {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary {
+      background: #238636;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #2ea043;
+    }
+
+    .btn-danger {
+      background: #21262d;
+      color: var(--danger);
+      border: 1px solid var(--border);
+    }
+    .btn-danger:hover {
+      background: rgba(248, 81, 73, 0.1);
+      border-color: var(--danger);
+    }
+
+    .btn-secondary {
+      background: #21262d;
+      color: var(--text);
+      border: 1px solid var(--border);
+      width: 100%;
+      margin-top: 8px;
+    }
+    .btn-secondary:hover {
+      background: #30363d;
+    }
+
+    .log-box {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, monospace;
+      font-size: 0.75rem;
+      height: 240px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .log-entry {
+      color: var(--text-dim);
+      word-break: break-word;
+    }
+    .log-info { color: #58a6ff; }
+    .log-success { color: #3fb950; }
+    .log-warn { color: #d29922; }
+    .log-error { color: #f85149; }
+
+    @media (max-width: 900px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-group">
+      <h1>🖥️ Macky Screen Mirror Viewer</h1>
+      <div class="subtitle">Step 2 WebRTC Test Receiver (simulates Android Client)</div>
+    </div>
+    <div id="statusBadge" class="status-badge">
+      <span class="status-dot"></span>
+      <span id="statusText">DISCONNECTED</span>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <div class="video-container">
+      <div id="overlayMsg" class="video-overlay-msg">
+        <p style="font-size: 1.1rem; color: #fff; margin-bottom: 8px;">Waiting for Stream</p>
+        <p>Enter room code from Mac agent & click "Connect"</p>
+      </div>
+
+      <video id="remoteVideo" autoplay playsinline muted></video>
+
+      <div id="statsBar" class="stats-bar" style="display: none;">
+        <span id="statRes">Res: --</span>
+        <span id="statFps">FPS: --</span>
+        <span id="statBitrate">Bitrate: --</span>
+        <span id="statRtt">RTT: --</span>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="card">
+        <h2>Connection Settings</h2>
+
+        <div class="form-group">
+          <label for="serverInput">Signaling Server URL</label>
+          <input type="text" id="serverInput" value="ws://localhost:8000">
+        </div>
+
+        <div class="form-group">
+          <label for="roomInput">Room Code</label>
+          <input type="text" id="roomInput" placeholder="e.g. X7K2QP" maxlength="6" style="text-transform: uppercase; font-size: 1.1rem; letter-spacing: 2px;">
+        </div>
+
+        <div class="btn-group">
+          <button id="btnConnect" class="btn-primary" onclick="startConnection()">Connect</button>
+          <button id="btnDisconnect" class="btn-danger" onclick="stopConnection()" disabled>Disconnect</button>
+        </div>
+
+        <button id="btnScaleMode" class="btn-secondary" onclick="toggleNativeSize()">🔍 Zoom: Fit Screen (Click for 1:1)</button>
+        <button class="btn-secondary" onclick="toggleFullscreen()">Toggle Fullscreen</button>
+      </div>
+
+      <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+        <h2>Event Log</h2>
+        <div id="logBox" class="log-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    let pc = null;
+    let statsInterval = null;
+    let bytesPrev = 0;
+    let timestampPrev = 0;
+
+    const serverInput = document.getElementById('serverInput');
+    const roomInput = document.getElementById('roomInput');
+    const btnConnect = document.getElementById('btnConnect');
+    const btnDisconnect = document.getElementById('btnDisconnect');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const overlayMsg = document.getElementById('overlayMsg');
+    const statsBar = document.getElementById('statsBar');
+    const logBox = document.getElementById('logBox');
+
+    // Auto-populate room code from URL query param ?room=CODE if present
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('room')) {
+      roomInput.value = urlParams.get('room').toUpperCase();
+    }
+
+    function log(msg, level = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${level}`;
+      const time = new Date().toLocaleTimeString();
+      entry.textContent = `[${time}] ${msg}`;
+      logBox.appendChild(entry);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function updateStatus(text, stateClass) {
+      const badge = document.getElementById('statusBadge');
+      document.getElementById('statusText').textContent = text;
+      badge.className = `status-badge ${stateClass}`;
+    }
+
+    async function startConnection() {
+      const roomCode = roomInput.value.trim().toUpperCase();
+      if (!roomCode || roomCode.length !== 6) {
+        alert("Please enter a valid 6-character room code from your Mac agent.");
+        return;
+      }
+
+      let serverBase = serverInput.value.trim();
+      if (serverBase.endsWith('/')) serverBase = serverBase.slice(0, -1);
+
+      btnConnect.disabled = true;
+      btnDisconnect.disabled = false;
+      updateStatus("CONNECTING WS...", "status-connecting");
+      log(`Connecting to signaling: ${serverBase}/ws/${roomCode}?role=viewer`);
+
+      // Initialize WebRTC PeerConnection
+      createPeerConnection();
+
+      // Open WebSocket
+      const wsUrl = `${serverBase}/ws/${roomCode}?role=viewer`;
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch (err) {
+        log(`Failed to create WebSocket: ${err}`, 'error');
+        stopConnection();
+        return;
+      }
+
+      ws.onopen = () => {
+        updateStatus("SIGNALING", "status-connecting");
+        log("WebSocket connected as viewer. Waiting for Mac host offer...", 'success');
+      };
+
+      ws.onmessage = async (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          handleSignalingMessage(message);
+        } catch (err) {
+          log(`Failed to parse signaling message: ${err}`, 'error');
+        }
+      };
+
+      ws.onerror = (err) => {
+        log("WebSocket error occurred", 'error');
+      };
+
+      ws.onclose = (event) => {
+        log(`WebSocket closed (code: ${event.code})`, 'warn');
+        if (event.code !== 1000) {
+          updateStatus("DISCONNECTED", "status-error");
+        } else {
+          updateStatus("DISCONNECTED", "");
+        }
+        stopConnection();
+      };
+    }
+
+    function createPeerConnection() {
+      const config = {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" }
+        ],
+        sdpSemantics: "unified-plan"
+      };
+
+      pc = new RTCPeerConnection(config);
+
+      // Handle inbound media track
+      pc.ontrack = (event) => {
+        log(`Received remote track: kind=${event.track.kind}, id=${event.track.id}`, 'success');
+        if (event.streams && event.streams[0]) {
+          remoteVideo.srcObject = event.streams[0];
+        } else {
+          const stream = new MediaStream([event.track]);
+          remoteVideo.srcObject = stream;
+        }
+        overlayMsg.classList.add('hidden');
+        statsBar.style.display = 'flex';
+        startStatsMonitor();
+      };
+
+      // Handle local ICE candidates to relay to Mac host
+      pc.onicecandidate = (event) => {
+        if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
+          log(`Generated ICE candidate: ${event.candidate.candidate.substring(0, 30)}...`);
+          const msg = {
+            type: "ice-candidate",
+            payload: {
+              candidate: event.candidate.candidate,
+              sdpMid: event.candidate.sdpMid || "video",
+              sdpMLineIndex: event.candidate.sdpMLineIndex || 0
+            }
+          };
+          ws.send(JSON.stringify(msg));
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        log(`ICE Connection State: ${pc.iceConnectionState}`);
+        if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+          updateStatus("CONNECTED", "status-connected");
+          log("WebRTC peer-to-peer connection established!", 'success');
+        } else if (pc.iceConnectionState === "failed") {
+          updateStatus("ICE FAILED", "status-error");
+          log("WebRTC ICE negotiation failed", 'error');
+        } else if (pc.iceConnectionState === "disconnected") {
+          updateStatus("DISCONNECTED", "status-error");
+          log("WebRTC peer disconnected", 'warn');
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        log(`PeerConnection State: ${pc.connectionState}`);
+      };
+    }
+
+    async function handleSignalingMessage(msg) {
+      const { type, payload } = msg;
+
+      switch (type) {
+        case "offer":
+          log("Received SDP offer from Mac host. Generating SDP answer...", 'info');
+          try {
+            await pc.setRemoteDescription(new RTCSessionDescription({
+              type: "offer",
+              sdp: payload.sdp
+            }));
+
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            log("Sending SDP answer back to Mac host...", 'info');
+            ws.send(JSON.stringify({
+              type: "answer",
+              payload: {
+                type: "answer",
+                sdp: answer.sdp
+              }
+            }));
+          } catch (err) {
+            log(`Error negotiating SDP offer/answer: ${err}`, 'error');
+          }
+          break;
+
+        case "ice-candidate":
+          if (payload && payload.candidate) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate({
+                candidate: payload.candidate,
+                sdpMid: payload.sdpMid,
+                sdpMLineIndex: payload.sdpMLineIndex
+              }));
+              log(`Added remote ICE candidate (${payload.sdpMid || "video"})`);
+            } catch (err) {
+              log(`Error adding ICE candidate: ${err}`, 'error');
+            }
+          }
+          break;
+
+        case "peer-left":
+          log("Mac host disconnected from room", 'warn');
+          updateStatus("HOST LEFT", "status-error");
+          break;
+
+        case "error":
+          log(`Signaling error: ${payload.message || JSON.stringify(payload)}`, 'error');
+          alert(`Error from signaling server: ${payload.message || 'Unknown'}`);
+          stopConnection();
+          break;
+
+        default:
+          log(`Ignored message type: ${type}`);
+      }
+    }
+
+    function startStatsMonitor() {
+      if (statsInterval) clearInterval(statsInterval);
+      statsInterval = setInterval(async () => {
+        if (!pc) return;
+        const stats = await pc.getStats();
+
+        stats.forEach(report => {
+          if (report.type === 'inbound-rtp' && report.kind === 'video') {
+            // Resolution
+            if (report.frameWidth && report.frameHeight) {
+              document.getElementById('statRes').textContent = `Res: ${report.frameWidth}x${report.frameHeight}`;
+            }
+            // FPS
+            if (report.framesPerSecond !== undefined) {
+              document.getElementById('statFps').textContent = `FPS: ${Math.round(report.framesPerSecond)}`;
+            }
+
+            // Bitrate calculation
+            const now = report.timestamp;
+            const bytes = report.bytesReceived;
+            if (timestampPrev > 0 && bytes > bytesPrev) {
+              const bitrateKbps = Math.round((8 * (bytes - bytesPrev)) / (now - timestampPrev));
+              if (bitrateKbps >= 1000) {
+                document.getElementById('statBitrate').textContent = `Bitrate: ${(bitrateKbps / 1000).toFixed(1)} Mbps`;
+              } else {
+                document.getElementById('statBitrate').textContent = `Bitrate: ${bitrateKbps} kbps`;
+              }
+            }
+            bytesPrev = bytes;
+            timestampPrev = now;
+          }
+
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+            if (report.currentRoundTripTime !== undefined) {
+              document.getElementById('statRtt').textContent = `RTT: ${Math.round(report.currentRoundTripTime * 1000)}ms`;
+            }
+          }
+        });
+      }, 1000);
+    }
+
+    function stopConnection() {
+      if (statsInterval) {
+        clearInterval(statsInterval);
+        statsInterval = null;
+      }
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+
+      remoteVideo.srcObject = null;
+      overlayMsg.classList.remove('hidden');
+      statsBar.style.display = 'none';
+
+      btnConnect.disabled = false;
+      btnDisconnect.disabled = true;
+      updateStatus("DISCONNECTED", "");
+      log("Session closed.");
+    }
+
+    let isNativeSize = false;
+    function toggleNativeSize() {
+      isNativeSize = !isNativeSize;
+      const btn = document.getElementById('btnScaleMode');
+      const container = document.querySelector('.video-container');
+      if (isNativeSize) {
+        remoteVideo.classList.add('native-size');
+        container.classList.add('allow-scroll');
+        btn.textContent = "🔍 Zoom: 1:1 Native (Click for Fit)";
+      } else {
+        remoteVideo.classList.remove('native-size');
+        container.classList.remove('allow-scroll');
+        btn.textContent = "🔍 Zoom: Fit Screen (Click for 1:1)";
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        remoteVideo.requestFullscreen().catch(err => {
+          alert(`Error entering fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  </script>
+</body>
+</html>

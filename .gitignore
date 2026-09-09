@@ -1,0 +1,43 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# User configuration / temporary artifacts
+room_qr.png
+download_apk_qr.png
+*.log
+
+# Swift / macOS Agent build outputs
+mac-agent/.build/
+mac-agent/dist/
+mac-agent/bin/
+.swiftpm/
+
+# Android build outputs & local secrets
+android-client/.gradle/
+android-client/.kotlin/
+android-client/build/
+android-client/app/build/
+android-client/local.properties
+android-client/.cxx/
+android-client/.externalNativeBuild/
+android-client/*.iml
+.idea/
+
+# Python virtualenvs & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+signaling-server/.venv/
+signaling-server/__pycache__/
+signaling-server/.env
+
+# Large binary release artifacts (distributed via GitHub Releases)
+*.dmg
+*.apk
