@@ -5,7 +5,6 @@
 
 [![Release](https://img.shields.io/github/v/release/shashanthnetha/Acuity-control-mac-through-mobile-?color=38bdf8&style=for-the-badge)](https://github.com/shashanthnetha/Acuity-control-mac-through-mobile-/releases)
 [![Stars](https://img.shields.io/github/stars/shashanthnetha/Acuity-control-mac-through-mobile-?style=for-the-badge&color=eab308)](https://github.com/shashanthnetha/Acuity-control-mac-through-mobile-/stargazers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg?style=for-the-badge)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-13%2B%20Ventura%20%7C%20Sonoma%20%7C%20Sequoia-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/shashanthnetha/Acuity-control-mac-through-mobile-/releases)
 [![Android](https://img.shields.io/badge/Android-8.0%2B%20(Oreo%20%E2%86%92%2015)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/shashanthnetha/Acuity-control-mac-through-mobile-/releases)
 [![Latency](https://img.shields.io/badge/Latency-%3C16ms%20Local%20P2P-10b981?style=for-the-badge&logo=speedtest&logoColor=white)](https://github.com/shashanthnetha/Acuity-control-mac-through-mobile-)
